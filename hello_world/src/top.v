@@ -95,28 +95,15 @@ module top (
         //.debug( debug )
     );
 
-  reg [20:0] counter = 21'b0;
   always @(posedge clk_48mhz)
   begin
-        if (uart_in_ready)
-        begin
-                uart_in_valid <= 0;
-                uart_out_ready <=0;
-                counter <= counter +1;
-                if (uart_out_valid)
-                begin
-                            char_count <= char_count +1;
-                            if (char_count +1 == TEXT_LEN) char_count <= 0;
-                            if (uart_in_ready)
-                                uart_in_data <= "a";
-                            else
-                                uart_in_data <= "b";
-                            uart_in_data <= text[char_count];
-                            uart_in_valid <= 1;
-                            uart_out_ready <= 1;
-                end
-        end
-        
+    if (uart_in_ready && uart_in_valid)
+    begin
+        char_count <= char_count +1;
+        if (char_count +1 == TEXT_LEN) char_count <= 0;
+    end
+    uart_in_data <= text[char_count];
+    uart_in_valid <= 1;
   end
   // USB Host Detect Pull Up
   assign pin_pu = 1'b1;
