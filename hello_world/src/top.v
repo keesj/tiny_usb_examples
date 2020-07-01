@@ -92,13 +92,13 @@ module top (
 
   always @(posedge clk_48mhz)
   begin
-    if (uart_in_ready && uart_in_valid)
+    if (uart_in_ready)// && uart_in_valid)
     begin
         char_count <= char_count +1;
         if (char_count +1 == TEXT_LEN) char_count <= 0;
+        uart_in_data <= text[char_count];
+        uart_in_valid <= 1;
     end
-    uart_in_data <= text[char_count];
-    uart_in_valid <= 1;
   end
   // USB Host Detect Pull Up
   assign pin_pu = 1'b1;
