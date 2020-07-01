@@ -65,14 +65,9 @@ module top (
 
     wire [7:0] uart_out_data;
     wire       uart_out_valid;
-    reg       uart_out_ready;
+    wire       uart_out_ready;
     // assign debug = { uart_in_valid, uart_in_ready, reset, clk_48mhz };
 
-    wire usb_p_tx;
-    wire usb_n_tx;
-    wire usb_p_rx;
-    wire usb_n_rx;
-    wire usb_tx_en;
 
     // usb uart - this instanciates the entire USB device.
     usb_uart uart (
