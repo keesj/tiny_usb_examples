@@ -44,7 +44,7 @@ module top (
 
     // uart pipeline in
     reg [7:0] uart_in_data;
-    reg       uart_in_valid;
+    reg       uart_in_valid = 1'b1;
     wire       uart_in_ready;
   initial begin
     text[0]  <= "H";
@@ -94,16 +94,43 @@ module top (
         //.debug( debug )
     );
 
+
+  parameter STATE_WAIT = 1'b0;
+  parameter STATE_TX = 1'b1;
+
+  reg state = STATE_WAIT;
+  reg [23:0] cnt = 24'b0;
+
   always @(posedge clk_48mhz)
   begin
-    if (uart_in_ready)// && uart_in_valid)
-    begin
-        char_count <= char_count +1;
-        if (char_count +1 == TEXT_LEN) char_count <= 0;
-        uart_in_data <= text[char_count];
-        uart_in_valid <= 1;
-    end
+      cnt <= cnt +1'b1;
+      case(state)
+      STATE_WAIT:
+        begin
+            uart_in_valid <= 0;
+            if (cnt == 24'hffffff)
+            begin
+                state <= STATE_TX;
+            end
+        end
+      STATE_TX:
+        begin
+          uart_in_valid <= 1;
+          if (uart_in_ready)
+          begin
+            char_count <= char_count +1;
+            if (char_count +1 == TEXT_LEN)
+            begin 
+                char_count <= 0;
+                state <= STATE_WAIT;
+                cnt <= 24'b0;
+            end 
+            uart_in_data <= text[char_count];
+          end
+        end
+      endcase
   end
+
   // USB Host Detect Pull Up
   assign pin_pu = 1'b1;
 
