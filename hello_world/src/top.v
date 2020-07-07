@@ -63,10 +63,12 @@ module top (
     text[13] <= "\n";
   end
 
+/*
     wire [7:0] uart_out_data;
     wire       uart_out_valid;
     wire       uart_out_ready;
     // assign debug = { uart_in_valid, uart_in_ready, reset, clk_48mhz };
+*/
 
 
     // usb uart - this instanciates the entire USB device.
@@ -81,11 +83,13 @@ module top (
         // uart pipeline in
         .uart_in_data( uart_in_data ),
         .uart_in_valid( uart_in_valid ),
-        .uart_in_ready( uart_in_ready ),
+        .uart_in_ready( uart_in_ready )
 
+/*
         .uart_out_data( uart_out_data ),
         .uart_out_valid( uart_out_valid ),
         .uart_out_ready( uart_out_ready  )
+*/
 
         //.debug( debug )
     );
