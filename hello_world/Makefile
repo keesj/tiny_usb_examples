@@ -5,9 +5,12 @@
 PROJTOP = top
 TOP_SRC=src/${PROJTOP}.v
 
-RTL_USB_DIR = ../ip/usb/src
+RTL_DIR = ../ip
+RTL_USB_DIR = ${RTL_DIR}/usb/src
+
 
 SOURCES = \
+    $(RTL_DIR)/generic/src/global_reset.v \
 	$(RTL_USB_DIR)/edge_detect.v \
 	$(RTL_USB_DIR)/usb_fs_in_arb.v \
 	$(RTL_USB_DIR)/usb_fs_in_pe.v \

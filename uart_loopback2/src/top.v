@@ -43,7 +43,7 @@ module top (
 
     wire [7:0] uart_out_data;
     wire       uart_out_valid;
-    reg       uart_out_ready;
+    wire       uart_out_ready;
     // assign debug = { uart_in_valid, uart_in_ready, reset, clk_48mhz };
 
     // usb uart - this instanciates the entire USB device.
@@ -67,15 +67,34 @@ module top (
         //.debug( debug )
     );
 
+  /* Simple fifo, store data in fifo, store used entries in fifo_state */
+  reg [31:0] fifo = 32'b0; // dead simple fifo
+  reg [3:0]  fifo_state = 4'b0000;
+  wire fifo_full;
+  wire fifo_empty;
+  assign fifo_full = (fifo_state == 4'b1111);
+  assign fifo_empty = (fifo_state == 4'b0000);
+  assign uart_out_ready = ~ fifo_full; /* as long as the fifo is not fill there is room */
+  
   always @(posedge clk_48mhz)
   begin
-        uart_in_valid <= 0;
-        uart_out_ready <=0;
-        if (uart_out_valid)
+        if (uart_out_valid && ~ fifo_full)
         begin
-              uart_in_data <= uart_out_data;
-              uart_in_valid <= 1;
-              uart_out_ready <= 1;
+           //
+           fifo = {uart_out_data,fifo[25:0]}; 
+           fifo_state = {1'b1,fifo_state[2:0]};
+        end
+        
+        if(uart_in_ready && ~fifo_empty)
+       begin
+           uart_in_data <= fifo[31:26];
+           fifo = {fifo[25:0],8'b0}; 
+           fifo_state = {fifo_state[2:0],1'b0};
+           uart_in_valid <= 1;
+        end
+        if (fifo_empty)
+        begin
+            uart_in_valid <= 0;
         end
         
   end

@@ -1,39 +1,61 @@
-# Makefile borrowed from https://github.com/cliffordwolf/icestorm/blob/master/examples/icestick/Makefile
-#
-# The following license is from the icestorm project and specifically applies to this file only:
-#
-#  Permission to use, copy, modify, and/or distribute this software for any
-#  purpose with or without fee is hereby granted, provided that the above
-#  copyright notice and this permission notice appear in all copies.
-#
-#  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-#  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-#  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-#  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-#  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-#  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+##
+## Make and program TinyFPGA BX
+##
 
-PROJ = top
+PROJTOP = top
+TOP_SRC=src/${PROJTOP}.v 
 
-PIN_DEF = pins.pcf
+
+RTL_DIR = ../ip
+RTL_USB_DIR = ${RTL_DIR}/usb/src
+
+#	$(RTL_USB_DIR)/serial.v \
+#
+SOURCES = \
+    $(RTL_DIR)/generic/src/global_reset.v \
+	$(RTL_USB_DIR)/edge_detect.v \
+	$(RTL_USB_DIR)/usb_fs_in_arb.v \
+	$(RTL_USB_DIR)/usb_fs_in_pe.v \
+	$(RTL_USB_DIR)/usb_fs_out_arb.v \
+	$(RTL_USB_DIR)/usb_fs_out_pe.v \
+	$(RTL_USB_DIR)/usb_fs_pe.v \
+	$(RTL_USB_DIR)/usb_fs_rx.v \
+	$(RTL_USB_DIR)/usb_fs_tx_mux.v \
+	$(RTL_USB_DIR)/usb_fs_tx.v \
+	$(RTL_USB_DIR)/usb_reset_det.v \
+	$(RTL_USB_DIR)/usb_serial_ctrl_ep.v \
+	$(RTL_USB_DIR)/usb_uart_bridge_ep.v \
+	$(RTL_USB_DIR)/usb_uart_core.v \
+	$(RTL_USB_DIR)/usb_uart.v \
+ 	../gen/pll.v
+
+SRC = $(TOP_SRC) $(SOURCES)
+
+PIN_DEF = syn/pins.pcf
+
 DEVICE = lp8k
-PKG = cm81
+PACKAGE = cm81
 
-all: $(PROJ).rpt $(PROJ).bin
-	tinyprog -p $(PROJ).bin
+CLK_MHZ = 48
 
-#%.blif: %.v picorv32.v ../usb/*.v 
-#	yosys -q -p 'synth_ice40 -top $(PROJ) -blif $@' $^
+all: $(PROJTOP).rpt $(PROJTOP).bin
 
-%.json: %.v picorv32.v ../usb/*.v
-	yosys -q -p 'synth_ice40 -top $(PROJ) -json $@' $^
+pll.v:
+	icepll -i 16 -o $(CLK_MHZ) -m -f $@
 
-#%.asc: $(PIN_DEF) %.blif
-#	arachne-pnr -d 8k -P $(PKG) -o $@ -p $^
+lint: $(SRC)
+	iverilog -grelative-include $^
+
+synth: $(PROJTOP).json
+
+$(PROJTOP).json: $(SRC)
+	yosys -q -p 'synth_ice40 -top $(PROJTOP) -json $@' $^
 
 %.asc: $(PIN_DEF) %.json
-	nextpnr-ice40 --lp8k --package $(PKG) --freq 20 --json $(PROJ).json --pcf $(PIN_DEF) --asc $(PROJ).asc
+	nextpnr-ice40 --$(DEVICE) --freq $(CLK_MHZ) --opt-timing --package $(PACKAGE) --pcf $(PIN_DEF) --json $*.json --asc $@
+
+gui: $(PIN_DEF) $(PROJTOP).json
+	nextpnr-ice40 --$(DEVICE) --package $(PACKAGE) --pcf $(PIN_DEF) --json $(PROJTOP).json --asc $(PROJTOP).asc --gui
 
 %.bin: %.asc
 	icepack $< $@
@@ -41,11 +63,11 @@ all: $(PROJ).rpt $(PROJ).bin
 %.rpt: %.asc
 	icetime -d $(DEVICE) -mtr $@ $<
 
-%_syn.v: %.blif
-	yosys -p 'read_blif -wideports $^; write_verilog $@'
+prog: $(PROJTOP).bin
+	tinyprog -p $<
 
 clean:
-	rm -f $(PROJ).blif $(PROJ).asc $(PROJ).rpt $(PROJ).bin $(PROJ).json
+	rm -f $(PROJTOP).json $(PROJTOP).asc $(PROJTOP).rpt $(PROJTOP).bin pll.v
 
 .SECONDARY:
-.PHONY: all clean
+.PHONY: all synth prog clean gui

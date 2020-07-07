@@ -1,7 +1,6 @@
 /*
     USB Serial
 
-    Wrapping usb/usb_uart_ice40.v to create a loopback.
 */
 
 module top (
@@ -31,11 +30,12 @@ module top (
     assign pin_led = ledCounter[ 24 ];
 
     // Generate reset signal
-    reg [5:0] reset_cnt = 0;
-    wire reset = ~reset_cnt[5];
-    always @(posedge clk_48mhz)
-        if ( clk_locked )
-            reset_cnt <= reset_cnt + reset;
+    wire reset;
+    global_reset rsti(
+        .clk(clk_48mhz),
+        .rst_in(clk_locked),
+        .rst(reset)
+   );
 
   parameter TEXT_LEN=14;
   // Create the text string
