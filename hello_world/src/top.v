@@ -115,9 +115,16 @@ module top (
         end
       STATE_TX:
         begin
-          uart_in_valid <= 1;
-          if (uart_in_ready)
+          /* While a bit counter intuitive uart_in_ready will not become valid 
+           * unless we send data hence, we are allowed to change state either
+           * when uart_in_valid (e.g. we are already transmitting and because of
+           * the pipeline interface we are allowed to change the values or
+           * We where not transmitting and need to bootstrap.
+           */
+          if (uart_in_ready || (~uart_in_valid && ~uart_in_ready))
           begin
+            uart_in_data <= text[char_count];
+            uart_in_valid <= 1;
             char_count <= char_count +1;
             if (char_count +1 == TEXT_LEN)
             begin 
@@ -125,7 +132,6 @@ module top (
                 state <= STATE_WAIT;
                 cnt <= 24'b0;
             end 
-            uart_in_data <= text[char_count];
           end
         end
       endcase
