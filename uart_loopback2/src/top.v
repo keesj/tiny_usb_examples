@@ -38,8 +38,8 @@ module top (
 
     // uart pipeline in
     reg [7:0] uart_in_data;
-    reg       uart_in_valid;
-    wire       uart_in_ready;
+    reg       uart_in_valid = 1'b0;
+    wire      uart_in_ready;
 
     wire [7:0] uart_out_data;
     wire       uart_out_valid;
@@ -74,29 +74,34 @@ module top (
   wire fifo_empty;
   assign fifo_full = (fifo_state == 4'b1111);
   assign fifo_empty = (fifo_state == 4'b0000);
-  assign uart_out_ready = ~ fifo_full; /* as long as the fifo is not fill there is room */
+  assign uart_out_ready = ~ fifo_full; /* as long as the fifo is not full there is room */
   
   always @(posedge clk_48mhz)
   begin
-        if (uart_out_valid && ~ fifo_full)
+       if (uart_out_valid && ~fifo_full)
         begin
-           //
-           fifo = {uart_out_data,fifo[25:0]}; 
-           fifo_state = {1'b1,fifo_state[2:0]};
+           // whe data available push it into the fifo
+           fifo = {uart_out_data,fifo[31:8]}; 
+           fifo_state = {1'b1,fifo_state[3:1]};
         end
-        
-        if(uart_in_ready && ~fifo_empty)
-       begin
-           uart_in_data <= fifo[31:26];
-           fifo = {fifo[25:0],8'b0}; 
-           fifo_state = {fifo_state[2:0],1'b0};
-           uart_in_valid <= 1;
-        end
-        if (fifo_empty)
+       else // prevent doing two fifo operations(push and pop) in one cycle 
         begin
-            uart_in_valid <= 0;
-        end
-        
+               // we are allowed to modify uart_in_data (and valid) when 
+               if( uart_in_ready || ~uart_in_valid)
+                 begin
+                   if (~fifo_empty)
+                     begin
+                           uart_in_data <= fifo[31:24];
+                           fifo = {fifo[25:0],"a"}; 
+                           fifo_state = {fifo_state[2:0],1'b0};
+                           uart_in_valid <= 1;
+                     end
+                   else
+                     begin
+                           uart_in_valid <= 0;
+                     end
+                  end
+      end
   end
   // USB Host Detect Pull Up
   assign pin_pu = 1'b1;
