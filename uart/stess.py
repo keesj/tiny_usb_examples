@@ -4,7 +4,10 @@ import string
 
 with Serial("/dev/ttyACM0",timeout=1) as dev:
     dev.baudrate = 115200
-    dev.write(string.ascii_lowercase.encode());
-    for i in range(0,100):
-            data = dev.read()
-            print(data)
+    for i in range(0,10):
+            message = string.ascii_lowercase * 30
+            dev.write(message.encode());
+            data = dev.read(len(message))
+            assert len(data) == len(message)
+            assert message.encode() == data
+
