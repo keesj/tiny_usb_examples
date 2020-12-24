@@ -1,8 +1,6 @@
 /*
     USB Serial
-
 */
-
 module top (
         input  pin_clk,
 
@@ -42,10 +40,11 @@ module top (
   reg [7:0] text [0:TEXT_LEN-1];
   reg [3:0] char_count =4'b0;
 
-    // uart pipeline in
-    reg [7:0] uart_in_data;
-    reg       uart_in_valid = 1'b1;
-    wire       uart_in_ready;
+  // uart pipeline in
+  reg [7:0] uart_in_data;
+  reg       uart_in_valid = 1'b1;
+  wire       uart_in_ready;
+
   initial begin
     text[0]  <= "H";
     text[1]  <= "e";
@@ -115,13 +114,13 @@ module top (
         end
       STATE_TX:
         begin
+          if (uart_in_ready || (~uart_in_valid && ~uart_in_ready))
           /* While a bit counter intuitive uart_in_ready will not become valid 
            * unless we send data hence, we are allowed to change state either
-           * when uart_in_valid (e.g. we are already transmitting and because of
+           * when uart_in_valid: we are already transmitting and because of
            * the pipeline interface we are allowed to change the values or
            * We where not transmitting and need to bootstrap.
            */
-          if (uart_in_ready || (~uart_in_valid && ~uart_in_ready))
           begin
             uart_in_data <= text[char_count];
             uart_in_valid <= 1;
