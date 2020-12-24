@@ -1,7 +1,6 @@
 /*
     USB Serial
-
-    Wrapping usb/usb_uart_ice40.v to create a loopback.
+    Wrapping usb/usb_uart_ice40.v to create a loopback but with a fifo this time.
 */
 
 module top (
@@ -67,40 +66,39 @@ module top (
         //.debug( debug )
     );
 
-  /* Simple fifo, store data in fifo, store used entries in fifo_state */
-  reg [31:0] fifo = 32'b0; // dead simple fifo
-  reg [3:0]  fifo_state = 4'b0000;
+  /* fifo to store 4 bytes  */
+  reg [7:0] fifo [3:0]; // 
+  reg [1:0]  fifo_start = 2'b00;
+  reg [1:0]  fifo_end = 2'b00;
   wire fifo_full;
   wire fifo_empty;
-  assign fifo_full = (fifo_state == 4'b1111);
-  assign fifo_empty = (fifo_state == 4'b0000);
-  assign uart_out_ready = ~ fifo_full; /* as long as the fifo is not full there is room */
+  assign fifo_full = (fifo_end + 1 == fifo_start);
+  assign fifo_empty = (fifo_start == fifo_end);
+
+  assign uart_out_ready = ~fifo_full; /* as long as the fifo is not full there is room */
   
   always @(posedge clk_48mhz)
-  begin
-       if (uart_out_valid && ~fifo_full)
-        begin
-           // whe data available push it into the fifo
-           fifo = {uart_out_data,fifo[31:8]}; 
-           fifo_state = {1'b1,fifo_state[3:1]};
-        end
-       else // prevent doing two fifo operations(push and pop) in one cycle 
-        begin
-               // we are allowed to modify uart_in_data (and valid) when 
-               if( uart_in_ready || ~uart_in_valid)
-                 begin
-                   if (~fifo_empty)
-                     begin
-                           uart_in_data <= fifo[31:24];
-                           fifo = {fifo[25:0],"a"}; 
-                           fifo_state = {fifo_state[2:0],1'b0};
-                           uart_in_valid <= 1;
-                     end
-                   else
-                     begin
-                           uart_in_valid <= 0;
-                     end
-                  end
+  begin       
+
+    if (uart_out_valid && ~fifo_full)
+      begin
+          // when data is available push it into the fifo
+          fifo[fifo_end] = uart_out_data;
+          fifo_end <= fifo_end +1;
+      end
+
+    if (uart_in_ready || (~uart_in_valid && ~uart_in_ready))
+      begin
+        if (~fifo_empty)
+          begin
+                uart_in_data <= fifo[fifo_start];
+                fifo_start <= fifo_start +1;              
+                uart_in_valid <= 1;
+          end
+        else
+          begin
+                uart_in_valid <= 0;
+          end
       end
   end
   // USB Host Detect Pull Up
