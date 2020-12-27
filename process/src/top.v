@@ -68,40 +68,36 @@ module top (
         //.debug( debug )
     );
 
-  /* fifo to store X bytes, where X it a power of 2*/
-  reg [7:0] fifo [3:0]; // 
-  reg [1:0]  fifo_start = 2'b00;
-  reg [1:0]  fifo_end = 2'b00;
-  wire fifo_full;
-  wire fifo_empty;
-  assign fifo_full = (fifo_end + 1 == fifo_start);
-  assign fifo_empty = (fifo_start == fifo_end);
+  wire [7:0] from_uart;
+  reg from_uart_en = 1'b0;
+  wire fifo_in_full;
+  wire fifo_in_empty;
 
-  assign uart_out_ready = ~fifo_full; /* as long as the fifo is not full there is room */
-  
-  always @(posedge clk_48mhz)
-  begin       
+  assign uart_out_ready = ~fifo_in_full; /* as long as the fifo is not full there is room to recieve data  */
 
-    if (uart_out_valid && ~fifo_full)
-      begin
-          // when data is available push it into the fifo
-          fifo[fifo_end] = uart_out_data;
-          fifo_end <= fifo_end +1;
+  fifo fifo_in (
+    .clk(clk_48mhz),
+    .rst(reset),
+    .data_in(uart_out_data), /* direct feed from usb uart */
+    .data_in_en(uart_out_valid), /* direct feed from usb uart */
+
+    .data_out(from_uart),
+    .data_out_en(from_uart_en),
+    .full(fifo_in_full),
+    .empty(fifo_in_empty)
+  );
+
+  always @(posedge clk_48mhz) begin
+    if (uart_in_ready || (~uart_in_valid && ~uart_in_ready)) begin
+      if (~fifo_in_empty) begin
+              uart_in_data <= from_uart ; //from_uart;
+              from_uart_en <= 1'b1;
+              uart_in_valid <= 1'b1;
+      end else begin
+        uart_in_valid <= 1'b0;
+        from_uart_en <= 1'b0;
       end
-
-    if (uart_in_ready || (~uart_in_valid && ~uart_in_ready))
-      begin
-        if (~fifo_empty)
-          begin
-                uart_in_data <= fifo[fifo_start];
-                fifo_start <= fifo_start +1;              
-                uart_in_valid <= 1;
-          end
-        else
-          begin
-                uart_in_valid <= 0;
-          end
-      end
+    end
   end
   // USB Host Detect Pull Up
   assign pin_pu = 1'b1;

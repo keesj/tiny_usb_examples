@@ -3,7 +3,7 @@
 ##
 
 PROJTOP = top
-TOP_SRC=src/${PROJTOP}.v
+TOP_SRC=src/${PROJTOP}.v src/fifo.v
 
 RTL_DIR = ../ip
 RTL_USB_DIR = ${RTL_DIR}/usb/src
