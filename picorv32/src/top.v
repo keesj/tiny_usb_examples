@@ -13,15 +13,7 @@ module top(
   input pin_rx
 );
 
-  wire [7:0] buttons;
 
-  SB_IO #(
-    .PIN_TYPE(6'b 0000_01),
-    .PULLUP(1'b 1)
-  ) button_input[7:0] (
-    .PACKAGE_PIN(pin_buttons),
-    .D_IN_0(buttons)
-  );
 
   localparam IO_LENGTH = 6;
 
@@ -29,15 +21,7 @@ module top(
   reg [IO_LENGTH-1:0] gpio_out;
   reg [IO_LENGTH-1:0] gpio_dir;
 
-  SB_IO #(
-    .PIN_TYPE(6'b 1010_01),
-    .PULLUP(1'b 0)
-  ) ios [IO_LENGTH-1:0] (
-    .PACKAGE_PIN(pin_gpio),
-    .OUTPUT_ENABLE(gpio_dir),
-    .D_OUT_0(gpio_out),
-    .D_IN_0(gpio_in)
-  );
+
 
   ////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////
@@ -206,57 +190,19 @@ module top(
   // usb uart
   usb_uart uart (
     .clk_48mhz  (clk_48mhz),
-    .resetn     (resetn),
+    .reset    (~resetn),
 
-    .usb_p_tx(usb_p_tx),
-    .usb_n_tx(usb_n_tx),
-    .usb_p_rx(usb_p_rx),
-    .usb_n_rx(usb_n_rx),
-    .usb_tx_en(usb_tx_en),
+    .pin_usb_p(pin_usbp),
+    .pin_usb_n(pin_usbn),
 
-    .uart_we  (uart_reg_dat_sel && mem_wstrb[0]),
-    .uart_re  (uart_reg_dat_sel && !mem_wstrb[0]),
-    .uart_di  (mem_wdata[7:0]),
-    .uart_do  (uart_reg_dat_do),
-    .uart_wait(uart_reg_dat_wait), // tx wait
-    .uart_ready(uart_ready)        // rx ready
+    .uart_out_valid  (uart_reg_dat_sel && mem_wstrb[0]),
+    .uart_in_data  (mem_wdata[7:0]),
+    .uart_out_data  (uart_reg_dat_do),
+    .uart_out_ready(uart_reg_dat_wait), // tx wait
+    .uart_in_ready(uart_ready)        // rx ready
   );
-
-  wire usb_p_tx;
-  wire usb_n_tx;
-  wire usb_p_rx;
-  wire usb_n_rx;
-  wire usb_tx_en;
-  wire usb_p_in;
-  wire usb_n_in;
 
   assign pin_pu = 1'b1;
-  assign usb_p_rx = usb_tx_en ? 1'b1 : usb_p_in;
-  assign usb_n_rx = usb_tx_en ? 1'b0 : usb_n_in;
-
-  SB_IO #(
-    .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
-    .PULLUP(1'b 0)
-  ) 
-  iobuf_usbp 
-  (
-    .PACKAGE_PIN(pin_usbp),
-    .OUTPUT_ENABLE(usb_tx_en),
-    .D_OUT_0(usb_p_tx),
-    .D_IN_0(usb_p_in)
-  );
-
-  SB_IO #(
-    .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
-    .PULLUP(1'b 0)
-  ) 
-  iobuf_usbn 
-  (
-    .PACKAGE_PIN(pin_usbn),
-    .OUTPUT_ENABLE(usb_tx_en),
-    .D_OUT_0(usb_n_tx),
-    .D_IN_0(usb_n_in)
-  );
 
 endmodule
 

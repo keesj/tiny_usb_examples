@@ -3,13 +3,15 @@
 ##
 
 PROJTOP = top
-TOP_SRC=src/${PROJTOP}.v src/global_reset.v
+TOP_SRC=src/${PROJTOP}.v src/tone.v
 
-RTL_USB_DIR = ../ip/usb/src
+RTL_DIR = ../ip
+RTL_USB_DIR = ${RTL_DIR}/usb/src
+
 
 SOURCES = \
+    $(RTL_DIR)/generic/src/global_reset.v \
 	$(RTL_USB_DIR)/edge_detect.v \
-	$(RTL_USB_DIR)/serial.v \
 	$(RTL_USB_DIR)/usb_fs_in_arb.v \
 	$(RTL_USB_DIR)/usb_fs_in_pe.v \
 	$(RTL_USB_DIR)/usb_fs_out_arb.v \
@@ -63,7 +65,7 @@ prog: $(PROJTOP).bin
 	tinyprog -p $<
 
 clean:
-	rm -f $(PROJTOP).json $(PROJTOP).asc $(PROJTOP).rpt $(PROJTOP).bin pll.v
+	rm -f $(PROJTOP).json $(PROJTOP).asc $(PROJTOP).rpt $(PROJTOP).bin pll.v a.out
 
 .SECONDARY:
 .PHONY: all synth prog clean gui

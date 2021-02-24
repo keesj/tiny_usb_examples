@@ -1,4 +1,5 @@
-CROSS_COMPILE=riscv64-linux-gnu-
+#CROSS_COMPILE=riscv64-linux-gnu-
+CROSS_COMPILE=riscv64-unknown-elf-
 
 firmware.hex:
 

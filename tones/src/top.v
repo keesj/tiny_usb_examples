@@ -1,14 +1,14 @@
 module top (
   input  pin_clk,
 
-  inout  pin_usbp,
-  inout  pin_usbn,
+  inout  pin_usb_p,
+  inout  pin_usb_n,
   output pin_pu,
 
-  output pin_led,
-  output audio_left
+  output pin_led
 );
 
+  reg audio_left;
   ////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////
   ////////
@@ -18,46 +18,48 @@ module top (
   ////////////////////////////////////////////////////////////////////////////////
   wire clk_48mhz;
 
-  SB_PLL40_CORE #(
-    .DIVR(4'b0000),
-    .DIVF(7'b0101111),
-    .DIVQ(3'b100),
-    .FILTER_RANGE(3'b001),
-    .FEEDBACK_PATH("SIMPLE"),
-    .DELAY_ADJUSTMENT_MODE_FEEDBACK("FIXED"),
-    .FDA_FEEDBACK(4'b0000),
-    .DELAY_ADJUSTMENT_MODE_RELATIVE("FIXED"),
-    .FDA_RELATIVE(4'b0000),
-    .SHIFTREG_DIV_MODE(2'b00),
-    .PLLOUT_SELECT("GENCLK"),
-    .ENABLE_ICEGATE(1'b0)
-  ) usb_pll_inst (
-    .REFERENCECLK(pin_clk),
-    .PLLOUTCORE(clk_48mhz),
-    .PLLOUTGLOBAL(),
-    .EXTFEEDBACK(),
-    .DYNAMICDELAY(),
-    .RESETB(1'b1),
-    .BYPASS(1'b0),
-    .LATCHINPUTVALUE(),
-    .LOCK(),
-    .SDI(),
-    .SDO(),
-    .SCLK()
-  );
+  pll pll48( 
+    .clock_in(pin_clk), 
+    .clock_out(clk_48mhz), 
+    .locked( clk_locked ) );
 
-  assign pin_led = 1;
+  // Generate reset signal based on clk_locked
+  wire reset;
+  global_reset rsti(
+      .clk(clk_48mhz),
+      .rst_in(clk_locked),
+      .rst(reset)
+ );
 
-  reg [7:0] uart_di = 0;
-  wire [7:0] uart_do;
-  reg uart_re, uart_we = 0;
-  wire uart_wait;
+    // uart pipeline in
+    reg [7:0] uart_in_data;
+    reg       uart_in_valid = 1'b0;
+    wire       uart_in_ready;
 
-  // Generate reset signal
-  reg [5:0] reset_cnt = 0;
-  wire resetn = &reset_cnt;
+    wire [7:0] uart_out_data;
+    wire       uart_out_valid;
+    reg       uart_out_ready = 1'b1;
+    // assign debug = { uart_in_valid, uart_in_ready, reset, clk_48mhz };
 
-  always @(posedge clk_48mhz) reset_cnt <= reset_cnt + !resetn;
+
+    // usb uart - this instanciates the entire USB device.
+    usb_uart uart (
+        .clk_48mhz  (clk_48mhz),
+        .reset      (reset),
+
+        // pins
+        .pin_usb_p( pin_usb_p ),
+        .pin_usb_n( pin_usb_n ),
+
+        // uart pipeline in
+        .uart_in_data( uart_in_data ),
+        .uart_in_valid( uart_in_valid ),
+        .uart_in_ready( uart_in_ready ),
+
+        .uart_out_data( uart_out_data ),
+        .uart_out_valid( uart_out_valid ),
+        .uart_out_ready( uart_out_ready  )
+    );
 
   localparam  C = 262, D = 294, E = 330, F = 349, G = 392, A = 440 , B = 494, c = 523;
 
@@ -71,27 +73,18 @@ module top (
   reg delay_count;
   reg [1:0] state = 0;
 
+  reg toggle = 1'b1;
+
+  assign pin_led = toggle;
+
   always @(posedge clk_48mhz) begin
-    delay_count <= delay_count + 1;
-
-    if (done) begin
-      duration <= 0;
-      state <= 0;
-    end
-
-    if (resetn && !uart_wait) begin
-      uart_we <= 0;
-      uart_re <= 0;
-
-      if (!uart_we && !uart_re) begin
-        case (state)
-        0:begin
-          uart_re <= 1;
-          if (&delay_count) state <= 1;
-        end
-        1: begin
-          duration <= 400;
-          case (uart_do)
+      if (done) begin
+        
+      end
+      if (uart_out_valid) begin
+        duration <= 400;
+        toggle <= ~toggle;
+        case (uart_out_data)
           "A" : frequency <= A;
           "B" : frequency <= B;
           "C" : frequency <= C;
@@ -100,74 +93,12 @@ module top (
           "F" : frequency <= F;
           "G" : frequency <= G;
           "c" : frequency <= c;
-          endcase
-        end
         endcase
       end
-    end
   end
 
-  // usb uart
-  usb_uart uart (
-    .clk_48mhz  (clk_48mhz),
-    .resetn     (resetn),
-
-    .usb_p_tx(usb_p_tx),
-    .usb_n_tx(usb_n_tx),
-    .usb_p_rx(usb_p_rx),
-    .usb_n_rx(usb_n_rx),
-    .usb_tx_en(usb_tx_en),
-
-    .uart_we  (uart_we),
-    .uart_re  (uart_re),
-    .uart_di  (uart_di),
-    .uart_do  (uart_do),
-    .uart_wait(uart_wait)
-  );
-
-  wire usb_p_tx;
-  wire usb_n_tx;
-  wire usb_p_rx;
-  wire usb_n_rx;
-  wire usb_tx_en;
-  wire usb_p_in;
-  wire usb_n_in;
 
   assign pin_pu = 1'b1;
-
-/*
-  assign pin_usbp = usb_tx_en ? usb_p_tx : 1'bz;
-  assign pin_usbn = usb_tx_en ? usb_n_tx : 1'bz;
-  assign usb_p_rx = usb_tx_en ? 1'b1 : pin_usbp;
-  assign usb_n_rx = usb_tx_en ? 1'b0 : pin_usbn;
-*/
-
-  assign usb_p_rx = usb_tx_en ? 1'b1 : usb_p_in;
-  assign usb_n_rx = usb_tx_en ? 1'b0 : usb_n_in;
-
-  SB_IO #(
-    .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
-    .PULLUP(1'b 0)
-  )
-  iobuf_usbp
-  (
-    .PACKAGE_PIN(pin_usbp),
-    .OUTPUT_ENABLE(usb_tx_en),
-    .D_OUT_0(usb_p_tx),
-    .D_IN_0(usb_p_in)
-  );
-
-  SB_IO #(
-    .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
-    .PULLUP(1'b 0)
-  )
-  iobuf_usbn
-  (
-    .PACKAGE_PIN(pin_usbn),
-    .OUTPUT_ENABLE(usb_tx_en),
-    .D_OUT_0(usb_n_tx),
-    .D_IN_0(usb_n_in)
-  );
 
   tone t(.clk (clk_48mhz), .duration(duration), .freq (frequency), .tone_out (audio_left), .done(done));
 

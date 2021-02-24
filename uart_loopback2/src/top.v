@@ -1,6 +1,8 @@
 /*
     USB Serial
     Wrapping usb/usb_uart_ice40.v to create a loopback but with a fifo this time.
+    This code show a more realistic case where we get a change do modify the data 
+    in between.
 */
 
 module top (
@@ -66,7 +68,7 @@ module top (
         //.debug( debug )
     );
 
-  /* fifo to store 4 bytes  */
+  /* fifo to store X bytes, where X it a power of 2*/
   reg [7:0] fifo [3:0]; // 
   reg [1:0]  fifo_start = 2'b00;
   reg [1:0]  fifo_end = 2'b00;
