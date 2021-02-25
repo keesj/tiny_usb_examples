@@ -29,22 +29,7 @@ module swim_rst(
   inout swim
 );
 
-
-
-//SB_IO #(
-//    .PIN_TYPE(6'b 1010_01),
-//    .PULLUP(1'b 0)
-//) raspi_io [8:0] (
-//    .PACKAGE_PIN(swim),
-//    .OUTPUT_ENABLE(dout_en),
-//    .D_OUT_0(dout),
-//    .D_IN_0(din)
-//);
-
-  //assign swim ;//=data[0];
-  
   reg [35:0] data =36'b111111110011001100110011010101010111;
-  //reg [35:0] data =36'bzzzzzzzz00zz00zz00zz00zz0z0z0z0z0zzz;
   reg current_data;
   
   reg [5:0] cnt =0;
@@ -52,22 +37,18 @@ module swim_rst(
   wire clk_tick;
 
 `ifdef SYNTHESIS
-    wire io_enable = cnt > 0 && current_data == 1'b0;
-    wire inp ;    
+    wire io_enable = cnt > 0 && current_data == 1'b0;  
     SB_IO #(
         .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
         .PULLUP(1'b 0)
     ) iobuf_usbp (
         .PACKAGE_PIN(swim),
         .OUTPUT_ENABLE(io_enable),
-        .D_OUT_0(1'b0),
-        .D_IN_0(inp)
+        .D_OUT_0(1'b0)
     );
-
 `endif
 
-  //assign swim = cnt > 0? current_data :   1'bz;
-
+  /* Generate clock ticks */
   clk_div div (
     .clk(clk),
     .reset(reset),
@@ -78,13 +59,13 @@ module swim_rst(
   begin
     if (reset) begin
     	cnt <= 0;
-        current_data <= 1'bz;
+      current_data <= 1'b0;
     end else begin
         if (en && cnt == 0) begin
             cnt <=35;
         end
         if (cnt == 0 && clk_tick) begin
-           current_data <= 1'bz;
+           current_data <= 1'b0;
         end
         if (cnt > 0 && clk_tick) begin
             cnt <= cnt -  1'b1;
@@ -92,7 +73,6 @@ module swim_rst(
         end
     end
   end
-
 endmodule
 
 
@@ -167,7 +147,6 @@ module top (
         .swim(swim)
   );
   
-
   /* fifo to store X bytes, where X it a power of 2*/
   reg [7:0] fifo [3:0]; // 
   reg [1:0]  fifo_start = 2'b00;
@@ -191,8 +170,7 @@ module top (
                   // when data is available push it into the fifo
                   fifo[fifo_end] = uart_out_data;
                   fifo_end <= fifo_end +1;
-                  //clk_out <= ~clk_out;
-                  en <= 1'b1;
+                  en <= 1'b1; /* enable sending the reset signal */
               end
 
             if (uart_in_ready || (~uart_in_valid && ~uart_in_ready))
