@@ -113,12 +113,12 @@ module top (
         //.debug( debug )
     );
 
-  //wire clk_4khz;
+  wire clk_4khz;
   
   clk_div div (
     .clk(clk_48mhz),
     .reset(reset),
-    .clk_4khz(swim)
+    .clk_4khz(clk_4khz)
   );
   reg en =1'b1;
   reg dummy ;
@@ -126,7 +126,7 @@ module top (
         .clk(clk_4khz),
         .reset(reset),
         .en(en),
-        .swim(dummy)
+        .swim(swim)
   );
   
 
