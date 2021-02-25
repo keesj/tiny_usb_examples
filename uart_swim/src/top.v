@@ -52,7 +52,7 @@ module swim_rst(
   wire clk_tick;
 
 `ifdef SYNTHESIS
-    wire io_enable = cnt > 0;
+    wire io_enable = cnt > 0 && current_data == 1'b0;
     wire inp ;    
     SB_IO #(
         .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
@@ -60,7 +60,7 @@ module swim_rst(
     ) iobuf_usbp (
         .PACKAGE_PIN(swim),
         .OUTPUT_ENABLE(io_enable),
-        .D_OUT_0(current_data),
+        .D_OUT_0(1'b0),
         .D_IN_0(inp)
     );
 
