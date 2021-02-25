@@ -26,16 +26,19 @@ module swim_rst(
   input clk,
   input reset,
   input en,
-  output reg swim
+  inout swim
 );
 
   //assign swim ;//=data[0];
   
   reg [35:0] data =36'b111111110011001100110011010101010111;
+  reg current_data;
   
   reg [5:0] cnt =0;
   
   wire clk_tick;
+
+  assign swim = cnt > 0? current_data :   'bz;
 
   clk_div div (
     .clk(clk),
@@ -47,14 +50,14 @@ module swim_rst(
   begin
     if (reset) begin
     	cnt <= 0;
-        swim <= 1'b0;
+        current_data <= 1'b0;
     end else begin
         if (en && cnt == 0) begin
             cnt <=35;
         end
         if (cnt > 0 && clk_tick) begin
             cnt <= cnt -  1'b1;
-            swim <= data[cnt];
+            current_data <= data[cnt];
         end
     end
   end
@@ -70,7 +73,7 @@ module top (
         output pin_pu,
 
         output pin_led,
-        output swim
+        inout swim
     );
 
     wire clk_48mhz;
