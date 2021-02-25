@@ -29,6 +29,8 @@ module swim_rst(
   inout swim
 );
 
+
+
 //SB_IO #(
 //    .PIN_TYPE(6'b 1010_01),
 //    .PULLUP(1'b 0)
@@ -42,14 +44,29 @@ module swim_rst(
   //assign swim ;//=data[0];
   
   reg [35:0] data =36'b111111110011001100110011010101010111;
-  //  reg [35:0] data =36'bzzzzzzzz00zz00zz00zz00zz0z0z0z0z0zzz;
-  //reg current_data;
+  //reg [35:0] data =36'bzzzzzzzz00zz00zz00zz00zz0z0z0z0z0zzz;
+  reg current_data;
   
   reg [5:0] cnt =0;
   
   wire clk_tick;
 
-  assign swim = cnt > 0? current_data :   1'bz;
+`ifdef SYNTHESIS
+    wire io_enable = cnt > 0;
+    wire inp ;    
+    SB_IO #(
+        .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
+        .PULLUP(1'b 0)
+    ) iobuf_usbp (
+        .PACKAGE_PIN(swim),
+        .OUTPUT_ENABLE(io_enable),
+        .D_OUT_0(current_data),
+        .D_IN_0(inp)
+    );
+
+`endif
+
+  //assign swim = cnt > 0? current_data :   1'bz;
 
   clk_div div (
     .clk(clk),
