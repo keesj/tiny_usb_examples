@@ -1,20 +1,21 @@
 module clk_div(
     input clk,
     input reset,
-    output clk_4khz
+    output wire clk_tick
 );
     reg [13:0] cnt = 0;
     reg clk_reg;
-    assign clk_4khz = clk_reg;
+    assign clk_tick = clk_reg;
     
 
     always @(posedge clk) begin
+        clk_reg <= 1'b0;
         if (reset) begin
-                clk_4khz <= 1'b0;
+                cnt <= 0;
         end else begin
                 cnt <= cnt + 1'b1;
-                if (cnt == 12000) begin
-                    clk_4khz <= ~clk_4khz;
+                if (cnt == 6000) begin
+                    clk_reg <= 1'b1;
                     cnt <= 0;
                 end
         end
@@ -30,20 +31,30 @@ module swim_rst(
 
   //assign swim ;//=data[0];
   
-  reg [35:0] data =36'b111111110011001100110011010101011111;
+  reg [35:0] data =36'b111111110011001100110011010101010111;
   
   reg [5:0] cnt =0;
   
+  wire clk_tick;
+
+  clk_div div (
+    .clk(clk),
+    .reset(reset),
+    .clk_tick(clk_tick)
+  );
+
   always @(posedge clk)
   begin
     if (reset) begin
     	cnt <= 0;
         swim <= 1'b0;
     end else begin
-        cnt <= cnt +  1'b1;
-        swim <= data[cnt];
-        if (cnt == 35) begin
-          cnt <= 0;
+        if (en && cnt == 0) begin
+            cnt <=35;
+        end
+        if (cnt > 0 && clk_tick) begin
+            cnt <= cnt -  1'b1;
+            swim <= data[cnt];
         end
     end
   end
@@ -59,7 +70,7 @@ module top (
         output pin_pu,
 
         output pin_led,
-        output reg swim
+        output swim
     );
 
     wire clk_48mhz;
@@ -113,17 +124,10 @@ module top (
         //.debug( debug )
     );
 
-  wire clk_4khz;
-  
-  clk_div div (
-    .clk(clk_48mhz),
-    .reset(reset),
-    .clk_4khz(clk_4khz)
-  );
-  reg en =1'b1;
-  reg dummy ;
+  reg en =1'b0;
+
   swim_rst swim_r(
-        .clk(clk_4khz),
+        .clk(clk_48mhz),
         .reset(reset),
         .en(en),
         .swim(swim)
@@ -147,12 +151,14 @@ module top (
     if (reset) begin
     end else begin
             //clk_out <= ~clk_out;
+            en <= 1'b1;
             if (uart_out_valid && ~fifo_full)
               begin
                   // when data is available push it into the fifo
                   fifo[fifo_end] = uart_out_data;
                   fifo_end <= fifo_end +1;
                   //clk_out <= ~clk_out;
+                  en <= 1'b1;
               end
 
             if (uart_in_ready || (~uart_in_valid && ~uart_in_ready))
