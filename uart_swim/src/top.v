@@ -29,6 +29,16 @@ module swim_rst(
   inout swim
 );
 
+//SB_IO #(
+//    .PIN_TYPE(6'b 1010_01),
+//    .PULLUP(1'b 0)
+//) raspi_io [8:0] (
+//    .PACKAGE_PIN(swim),
+//    .OUTPUT_ENABLE(dout_en),
+//    .D_OUT_0(dout),
+//    .D_IN_0(din)
+//);
+
   //assign swim ;//=data[0];
   
   reg [35:0] data =36'b111111110011001100110011010101010111;
