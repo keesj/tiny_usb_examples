@@ -32,13 +32,14 @@ module swim_rst(
   //assign swim ;//=data[0];
   
   reg [35:0] data =36'b111111110011001100110011010101010111;
-  reg current_data;
+  //  reg [35:0] data =36'bzzzzzzzz00zz00zz00zz00zz0z0z0z0z0zzz;
+  //reg current_data;
   
   reg [5:0] cnt =0;
   
   wire clk_tick;
 
-  assign swim = cnt > 0? current_data :   'bz;
+  assign swim = cnt > 0? current_data :   1'bz;
 
   clk_div div (
     .clk(clk),
@@ -50,10 +51,13 @@ module swim_rst(
   begin
     if (reset) begin
     	cnt <= 0;
-        current_data <= 1'b0;
+        current_data <= 1'bz;
     end else begin
         if (en && cnt == 0) begin
             cnt <=35;
+        end
+        if (cnt == 0 && clk_tick) begin
+           current_data <= 1'bz;
         end
         if (cnt > 0 && clk_tick) begin
             cnt <= cnt -  1'b1;
@@ -154,7 +158,7 @@ module top (
     if (reset) begin
     end else begin
             //clk_out <= ~clk_out;
-            en <= 1'b1;
+            en <= 1'b0;
             if (uart_out_valid && ~fifo_full)
               begin
                   // when data is available push it into the fifo
