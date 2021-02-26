@@ -14,7 +14,7 @@ module clk_div(
                 cnt <= 0;
         end else begin
                 cnt <= cnt + 1'b1;
-                if (cnt == 6000) begin
+                if (cnt == 12000) begin
                     clk_reg <= 1'b1;
                     cnt <= 0;
                 end
@@ -35,16 +35,18 @@ module swim_rst(
   reg [5:0] cnt =0;
   
   wire clk_tick;
-
+wire in; 
 `ifdef SYNTHESIS
-    wire io_enable = cnt > 0 && current_data == 1'b0;  
+    wire io_enable = cnt > 0 && current_data == 1'b0; 
+    wire in; 
     SB_IO #(
         .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
         .PULLUP(1'b 0)
     ) iobuf_usbp (
         .PACKAGE_PIN(swim),
         .OUTPUT_ENABLE(io_enable),
-        .D_OUT_0(1'b0)
+        .D_OUT_0(1'b0),
+        .D_IN_0(in)
     );
 `endif
 
@@ -61,8 +63,9 @@ module swim_rst(
     	cnt <= 0;
       current_data <= 1'b0;
     end else begin
-        if (en && cnt == 0) begin
+        if ( (en  ) && cnt == 0) begin
             cnt <=35;
+            current_data <= data[35];
         end
         if (cnt == 0 && clk_tick) begin
            current_data <= 1'b0;
@@ -165,6 +168,7 @@ module top (
     end else begin
             //clk_out <= ~clk_out;
             en <= 1'b0;
+
             if (uart_out_valid && ~fifo_full)
               begin
                   // when data is available push it into the fifo
