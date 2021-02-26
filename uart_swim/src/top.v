@@ -64,7 +64,7 @@ wire in;
       current_data <= 1'b0;
     end else begin
         if ( (en  ) && cnt == 0) begin
-            cnt <=35;
+            cnt <=34;
             current_data <= data[35];
         end
         if (cnt == 0 && clk_tick) begin
