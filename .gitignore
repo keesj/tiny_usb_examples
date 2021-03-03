@@ -2,7 +2,7 @@
 *.log
 *.asc
 *.blif
-*.json
+#*.json
 *.rpt
 *.elf
 
