@@ -31,6 +31,15 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # * Anything else you want to do like clean up goes here *
 # ********************************************************
 
+# 
+# Custom
+#
+RUN mkdir -p /scripts
+COPY .devcontainer/build.sh /scripts
+WORKDIR /scripts
+RUN chmod +x build.sh
+RUN cd /scripts/ ;  ./build.sh
+
 # [Optional] Set the default user. Omit if you want to keep the default as root.
 USER $USERNAME
 
@@ -41,14 +50,4 @@ RUN sudo apt-get -q update && \
 
 RUN python -mpip install sphinx-autobuild  sphinxcontrib-plantuml  sphinx-rtd-theme pillow
 RUN python -mpip install git+https://github.com/tonybaloney/sphinxcontrib-confluencebuilder
-
-# custom
-RUN python -mpip install platformio
-RUN echo "export PATH=$PATH:~/.platformio/penv/bin" >> $HOME/.bashrc
-RUN echo "export PATH=$PATH:~/.local/bin" >> $HOME/.bashrc
-RUN echo "export PATH=$PATH:~/.local/bin" >> $HOME/.bashrc
-
-RUN pio platform install "lattice_ice40"
-RUN echo "export PATH=$PATH:~/.platformio/packages/toolchain-icestorm/bin" >> $HOME/.bashrc
-
 
