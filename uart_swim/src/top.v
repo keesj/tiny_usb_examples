@@ -26,7 +26,9 @@ module swim_rst(
   input clk,
   input reset,
   input en,
-  inout swim
+  inout swim_1,
+  inout swim_2,
+  inout swim_3
 );
 
   reg [35:0] data =36'b111111110011001100110011010101010111;
@@ -39,11 +41,30 @@ wire in;
 `ifdef SYNTHESIS
     wire io_enable = cnt > 0 && current_data == 1'b0; 
     wire in; 
+
     SB_IO #(
         .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
         .PULLUP(1'b 0)
-    ) iobuf_usbp (
-        .PACKAGE_PIN(swim),
+    ) iobuf_swim1 (
+        .PACKAGE_PIN(swim_1),
+        .OUTPUT_ENABLE(io_enable),
+        .D_OUT_0(1'b0)
+    );
+
+    SB_IO #(
+        .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
+        .PULLUP(1'b 0)
+    ) iobuf_swim2 (
+        .PACKAGE_PIN(swim_2),
+        .OUTPUT_ENABLE(io_enable),
+        .D_OUT_0(1'b0)
+    );
+
+    SB_IO #(
+        .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
+        .PULLUP(1'b 0)
+    ) iobuf_swim3 (
+        .PACKAGE_PIN(swim_3),
         .OUTPUT_ENABLE(io_enable),
         .D_OUT_0(1'b0),
         .D_IN_0(in)
@@ -87,7 +108,9 @@ module top (
         output pin_pu,
 
         output pin_led,
-        inout swim
+        inout pin_1,
+        inout pin_2,
+        inout pin_3
     );
 
     wire clk_48mhz;
@@ -147,7 +170,9 @@ module top (
         .clk(clk_48mhz),
         .reset(reset),
         .en(en),
-        .swim(swim)
+        .swim_1(pin_1),
+        .swim_2(pin_2),
+        .swim_3(pin_3)
   );
   
   /* fifo to store X bytes, where X it a power of 2*/
@@ -172,7 +197,8 @@ module top (
             if (uart_out_valid && ~fifo_full)
               begin
                   // when data is available push it into the fifo
-                  fifo[fifo_end] = uart_out_data;
+                  //fifo[fifo_end] = uart_out_data;
+                  fifo[fifo_end] ="a";
                   fifo_end <= fifo_end +1;
                   en <= 1'b1; /* enable sending the reset signal */
               end

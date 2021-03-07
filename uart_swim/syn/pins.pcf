@@ -4,7 +4,12 @@ set_io pin_usb_n A4
 set_io pin_pu    A3
 set_io pin_clk    B2
 
-set_io swim C9   # Pin_17
+set_io --warn-no-port pin_1 A2
+set_io --warn-no-port pin_2 A1
+set_io --warn-no-port pin_3 B1
+
+# set_io swim C9   # Pin_17
+
 # Your debug pins might be different
 #set_io --warn-no-port debug[0] H9   # Pin_14
 #set_io --warn-no-port debug[1] D9   # Pin_15
