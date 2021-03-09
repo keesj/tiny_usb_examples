@@ -5,6 +5,10 @@
 PROJTOP = top
 TOP_SRC=src/${PROJTOP}.v src/global_reset.v
 
+SIM_PROJ=top_tb
+SIM_SRC=sim/top_tb.v
+
+
 RTL_USB_DIR = ../ip/usb/src
 
 SOURCES = \
@@ -46,6 +50,13 @@ synth: $(PROJTOP).json
 $(PROJTOP).json: $(SRC)
 	yosys -q -p 'synth_ice40 -top $(PROJTOP) -json $@' $^
 
+sim:$(SIM_PROJ) Makefile
+#
+# SIM target 
+#
+$(SIM_PROJ): $(SRC) $(SIM_SRC)
+	iverilog -grelative-include -s $@ -o $@ $^
+
 %.asc: $(PIN_DEF) %.json
 	nextpnr-ice40 --$(DEVICE) --freq $(CLK_MHZ) --opt-timing --package $(PACKAGE) --pcf $(PIN_DEF) --json $*.json --asc $@
 
@@ -62,7 +73,7 @@ prog: $(PROJTOP).bin
 	tinyprog -p $<
 
 clean:
-	rm -f $(PROJTOP).json $(PROJTOP).asc $(PROJTOP).rpt $(PROJTOP).bin pll.v a.out
+	rm -f $(PROJTOP).json $(PROJTOP).asc $(PROJTOP).rpt $(PROJTOP).bin pll.v a.out $(SIM_PROJ)
 
 .SECONDARY:
 .PHONY: all synth prog clean gui

@@ -37,3 +37,4 @@ cd yosys
 make -j$(nproc)
 sudo make install
 )
+rm -rf icestorm arachne-pnr nextpnr yosys

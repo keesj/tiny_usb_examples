@@ -45,7 +45,7 @@ USER $USERNAME
 
 
 RUN sudo apt-get -q update && \
-     sudo apt-get install -yq  build-essential git moreutils vim tmux graphviz python3-sphinx python3-pip python-is-python3 && \
+     sudo apt-get install -yq  build-essential iverilog git moreutils vim tmux graphviz python3-sphinx python3-pip python-is-python3 && \
      sudo rm -rf /var/lib/apt/lists/*
 
 RUN python -mpip install sphinx-autobuild  sphinxcontrib-plantuml  sphinx-rtd-theme pillow

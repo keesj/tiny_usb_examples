@@ -31,10 +31,10 @@ module swim_rst(
   inout swim_3
 );
 
-  reg [35:0] data =36'b111111110011001100110011010101010111;
+  reg [44:0] data =45'b00000000111111100110011001100110010101010001;
   reg current_data;
   
-  reg [5:0] cnt =0;
+  reg [6:0] cnt =0;
   
   wire clk_tick;
 wire in; 
@@ -78,6 +78,9 @@ wire in;
     .clk_tick(clk_tick)
   );
 
+  //reg [3:0] state;
+  //parameter phase_0;
+
   always @(posedge clk)
   begin
     if (reset) begin
@@ -85,8 +88,8 @@ wire in;
       current_data <= 1'b0;
     end else begin
         if ( (en  ) && cnt == 0) begin
-            cnt <=34;
-            current_data <= data[35];
+            cnt <=43;
+            current_data <= data[44];
         end
         if (cnt == 0 && clk_tick) begin
            current_data <= 1'b0;
