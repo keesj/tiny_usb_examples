@@ -1,4 +1,6 @@
-module clk_div(
+module clk_div
+ #(parameter DIVIDER=12000)
+ (
     input clk,
     input reset,
     output wire clk_tick
@@ -14,7 +16,7 @@ module clk_div(
                 cnt <= 0;
         end else begin
                 cnt <= cnt + 1'b1;
-                if (cnt == 12000) begin
+                if (cnt == DIVIDER) begin
                     clk_reg <= 1'b1;
                     cnt <= 0;
                 end

@@ -50,6 +50,9 @@ synth: $(PROJTOP).json
 $(PROJTOP).json: $(SRC)
 	yosys -q -p 'synth_ice40 -top $(PROJTOP) -json $@' $^
 
+test:sim
+	./$(SIM_PROJ)
+
 sim:$(SIM_PROJ) Makefile
 #
 # SIM target 
