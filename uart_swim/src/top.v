@@ -1,91 +1,47 @@
-module clk_div
- #(parameter DIVIDER=12000)
- (
-    input clk,
-    input reset,
-    output wire clk_tick
-);
-    reg [13:0] cnt = 0;
-    reg clk_reg;
-    assign clk_tick = clk_reg;
-    
-
-    always @(posedge clk) begin
-        clk_reg <= 1'b0;
-        if (reset) begin
-                cnt <= 0;
-        end else begin
-                cnt <= cnt + 1'b1;
-                if (cnt == DIVIDER) begin
-                    clk_reg <= 1'b1;
-                    cnt <= 0;
-                end
-        end
-    end
-endmodule
-
 module swim_rst(
   input clk,
-  input reset,
+  input rst,
   input en,
-  inout swim_1,
-  inout swim_2,
-  inout swim_3
+  inout swim,
+  output swim_en,
+  output reg rdy = 1'b0
 );
-
   reg [44:0] data =45'b00000000111111100110011001100110010101010001;
-  reg current_data;
+  assign swim = current_data == 1'b1;
+  reg current_data ;
   
   reg [6:0] cnt =0;
   
   wire clk_tick;
-wire in; 
-`ifdef SYNTHESIS
-    wire io_enable = cnt > 0 && current_data == 1'b0; 
-    wire in; 
+  wire in; 
 
-    SB_IO #(
-        .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
-        .PULLUP(1'b 0)
-    ) iobuf_swim1 (
-        .PACKAGE_PIN(swim_1),
-        .OUTPUT_ENABLE(io_enable),
-        .D_OUT_0(1'b0)
-    );
 
-    SB_IO #(
-        .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
-        .PULLUP(1'b 0)
-    ) iobuf_swim2 (
-        .PACKAGE_PIN(swim_2),
-        .OUTPUT_ENABLE(io_enable),
-        .D_OUT_0(1'b0)
-    );
-
-    SB_IO #(
-        .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
-        .PULLUP(1'b 0)
-    ) iobuf_swim3 (
-        .PACKAGE_PIN(swim_3),
-        .OUTPUT_ENABLE(io_enable),
-        .D_OUT_0(1'b0),
-        .D_IN_0(in)
-    );
-`endif
+  assign swim_en = cnt > 0 && current_data == 1'b0; 
 
   /* Generate clock ticks */
-  clk_div div (
+`ifdef SYNTHESIS  
+  delay #(.CLK_COUNT(12000)) myclk (
     .clk(clk),
-    .reset(reset),
-    .clk_tick(clk_tick)
+    .en(1'b1),
+    .rst(rst),
+    .rdy(clk_tick)
   );
+`else
+  delay #(.CLK_COUNT(12)) myclk (
+    .clk(clk),
+    .en(1'b1),
+    .rst(rst),
+    .rdy(clk_tick)
+  );
+`endif
 
   //reg [3:0] state;
-  //parameter phase_0;
+  //parameter phase_0,;
 
   always @(posedge clk)
   begin
-    if (reset) begin
+    rdy <= 1'b0;
+    if (rst) begin
     	cnt <= 0;
       current_data <= 1'b0;
     end else begin
@@ -95,6 +51,7 @@ wire in;
         end
         if (cnt == 0 && clk_tick) begin
            current_data <= 1'b0;
+           rdy <= 1'b1;
         end
         if (cnt > 0 && clk_tick) begin
             cnt <= cnt -  1'b1;
@@ -103,6 +60,57 @@ wire in;
     end
   end
 endmodule
+
+module swim_rst_wrap(
+  input clk,
+  input rst,
+  input en,
+  inout swim_1,
+  inout swim_2,
+  inout swim_3
+);
+
+  wire swim;
+  wire swim_en;
+  swim_rst swim_rst_i(
+    .clk(clk),
+    .rst(rst),
+    .en(en),
+    .swim(swim),
+    .swim_en(swim_en)
+  );
+`ifdef SYNTHESIS
+
+    SB_IO #(
+        .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
+        .PULLUP(1'b 0)
+    ) iobuf_swim1 (
+        .PACKAGE_PIN(swim_1),
+        .OUTPUT_ENABLE(swim_en),
+        .D_OUT_0(1'b0)
+    );
+
+    SB_IO #(
+        .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
+        .PULLUP(1'b 0)
+    ) iobuf_swim2 (
+        .PACKAGE_PIN(swim_2),
+        .OUTPUT_ENABLE(swim_en),
+        .D_OUT_0(1'b0)
+    );
+
+    SB_IO #(
+        .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
+        .PULLUP(1'b 0)
+    ) iobuf_swim3 (
+        .PACKAGE_PIN(swim_3),
+        .OUTPUT_ENABLE(swim_en),
+        .D_OUT_0(1'b0)
+    );
+`endif
+endmodule
+
+
 
 
 module top (
@@ -171,9 +179,9 @@ module top (
 
   reg en =1'b0;
 
-  swim_rst swim_r(
+  swim_rst_wrap swim_rst_wrap_i(
         .clk(clk_48mhz),
-        .reset(reset),
+        .rst(reset),
         .en(en),
         .swim_1(pin_1),
         .swim_2(pin_2),

@@ -3,7 +3,7 @@
 ##
 
 PROJTOP = top
-TOP_SRC=src/${PROJTOP}.v src/global_reset.v
+TOP_SRC=src/${PROJTOP}.v src/global_reset.v src/delay.v
 
 SIM_PROJ=top_tb
 SIM_SRC=sim/top_tb.v
@@ -42,7 +42,7 @@ all: $(PROJTOP).rpt $(PROJTOP).bin
 pll.v:
 	icepll -i 16 -o $(CLK_MHZ) -m -f $@
 
-lint: $(SRC)
+lint: $(SRC)  $(SIM_SRC)
 	iverilog -grelative-include $^
 
 synth: $(PROJTOP).json
@@ -61,7 +61,8 @@ $(SIM_PROJ): $(SRC) $(SIM_SRC)
 	iverilog -grelative-include -s $@ -o $@ $^
 
 %.asc: $(PIN_DEF) %.json
-	nextpnr-ice40 --$(DEVICE) --freq $(CLK_MHZ) --opt-timing --package $(PACKAGE) --pcf $(PIN_DEF) --json $*.json --asc $@
+#	nextpnr-ice40 --$(DEVICE) --freq $(CLK_MHZ) --opt-timing --package $(PACKAGE) --pcf $(PIN_DEF) --json $*.json --asc $@
+	nextpnr-ice40 --$(DEVICE) --freq $(CLK_MHZ) --package $(PACKAGE) --pcf $(PIN_DEF) --json $*.json --asc $@
 
 gui: $(PIN_DEF) $(PROJTOP).json
 	nextpnr-ice40 --$(DEVICE) --package $(PACKAGE) --pcf $(PIN_DEF) --json $(PROJTOP).json --asc $(PROJTOP).asc --gui

@@ -2,21 +2,15 @@ module top_tb;
 
     reg clk = 1'b0;
     parameter PERIOD = 10;
-    always #5 clk=~clk;
+    always #PERIOD clk=~clk;
 
     reg rst =1'b0;
-    reg en = 1'b0;
-
-    wire swim;
-    wire swim_en;
     wire rdy;
 
-    swim_rst swim_rst_i(
+    delay   #(.CLK_COUNT(10)) div(
         .clk(clk),
+        .en(1'b1),
         .rst(rst),
-        .en(en),
-        .swim(swim),
-        .swim_en(swim_en),
         .rdy(rdy)
     );
 
@@ -26,19 +20,17 @@ module top_tb;
         $dumpvars(0,top_tb);
     end
 
-    always @(posedge clk) begin
+    always begin
         $display("Format");
         rst = 1'b1;
-        #PERIOD;
+        #1;
         rst = 1'b0;
-        en = 1'b1;
-        #PERIOD;
-        en = 1'b0;
-
-        #2000;
+        #200;
         wait(rdy);
-        //wait(busy==0);
-
+        wait(rdy==0);
+        wait(rdy);
+        wait(rdy==0);
+        
         $finish;
     end
 endmodule
