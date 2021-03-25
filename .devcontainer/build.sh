@@ -11,6 +11,7 @@ sudo  DEBIAN_FRONTEND=noninteractive apt-get -y install build-essential clang bi
 
 rm -rf icestorm arachne-pnr nextpnr yosys
 
+date
 (
 git clone https://github.com/YosysHQ/icestorm.git icestorm
 cd icestorm
@@ -32,7 +33,7 @@ cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=/usr/local .
 make -j$(nproc)
 sudo make install
 )
-
+ 
 (
 git clone https://github.com/YosysHQ/yosys.git yosys
 cd yosys

@@ -32,7 +32,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # ********************************************************
 
 # 
-# Custom
+# Build yosys from sources (look at build.sh for the steps performed)
 #
 RUN mkdir -p /scripts
 COPY .devcontainer/build.sh /scripts
@@ -43,11 +43,28 @@ RUN cd /scripts/ ;  ./build.sh
 # [Optional] Set the default user. Omit if you want to keep the default as root.
 USER $USERNAME
 
-
+#
+# Install some packages required for verilog but also some other cool ones like 
+# * silverseacher-ag (grep killer)
+# * vim an editor :P
+# 
 RUN sudo apt-get -q update && \
-     sudo apt-get install -yq  build-essential iverilog verilator git moreutils vim tmux graphviz python3-sphinx python3-pip python-is-python3 && \
+     sudo apt-get install -yq  curl build-essential iverilog verilator git moreutils vim tmux graphviz python3-sphinx python3-pip silversearcher-ag python-is-python3 && \
      sudo rm -rf /var/lib/apt/lists/*
+
+# Install litex & risc-v toolchain in ~/litex
+RUN mkdir -p ~/litex
+WORKDIR ~/litex
+RUN cd ~/litex && curl -o litex_setup.py https://raw.githubusercontent.com/enjoy-digital/litex/master/litex_setup.py  && \
+    chmod +x litex_setup.py && \
+    ./litex_setup.py init install --user && \
+    ./litex_setup.py gcc
+
+RUN echo 'export PATH=${PATH}:~/.local/bin' >> ~/.bashrc
+RUN echo 'export PATH=$PATH:$(echo ~/litex/riscv64-*/bin/)' >>  ~/.bashrc
 
 RUN python -mpip install sphinx-autobuild  sphinxcontrib-plantuml  sphinx-rtd-theme pillow
 RUN python -mpip install git+https://github.com/tonybaloney/sphinxcontrib-confluencebuilder
 
+
+WORKDIR /workspace/software

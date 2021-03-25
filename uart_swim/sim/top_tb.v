@@ -9,14 +9,16 @@ module top_tb;
 
     wire swim;
     wire swim_en;
+    wire swimg_rst;
     wire rdy;
-
+    
     swim_rst swim_rst_i(
         .clk(clk),
         .rst(rst),
         .en(en),
         .swim(swim),
         .swim_en(swim_en),
+        .swim_rst(swim_rst),
         .rdy(rdy)
     );
 
@@ -32,10 +34,15 @@ module top_tb;
         #PERIOD;
         rst = 1'b0;
         en = 1'b1;
-        #PERIOD;
+        #20;
         en = 1'b0;
 
+        wait(rdy);
+        wait(rdy==0);
         #2000;
+        en = 1'b1;
+        #20;
+        en = 1'b0;
         wait(rdy);
         //wait(busy==0);
 

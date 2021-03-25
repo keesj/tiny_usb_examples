@@ -4,19 +4,20 @@ module swim_rst(
   input en,
   inout swim,
   output swim_en,
+  output reg swim_rst =1'b1,
   output reg rdy = 1'b0
 );
-  reg [44:0] data =45'b00000000111111100110011001100110010101010001;
+  reg [27:0] data =28'b0000110011001100110010101010;
   assign swim = current_data == 1'b1;
   reg current_data ;
   
-  reg [6:0] cnt =0;
+  reg [31:0] cnt =0;
   
   wire clk_tick;
   wire in; 
 
-
-  assign swim_en = cnt > 0 && current_data == 1'b0; 
+  reg clk_en = 1'b0;
+  assign swim_en =  current_data == 1'b0; 
 
   /* Generate clock ticks */
 `ifdef SYNTHESIS  
@@ -26,37 +27,105 @@ module swim_rst(
     .rst(rst),
     .rdy(clk_tick)
   );
+
+  //parameter MS_010=480000;
+  //parameter MS_001=48000;
+  //parameter MS_500=8000000;
+  //parameter US_016=768;
+
+  parameter MS_010=4800000;
+  parameter MS_001=480000;
+  parameter MS_500=80000000;
+  parameter US_016=7680;
 `else
-  delay #(.CLK_COUNT(12)) myclk (
+  delay #(.CLK_COUNT(10)) myclk (
     .clk(clk),
     .en(1'b1),
     .rst(rst),
     .rdy(clk_tick)
   );
+  parameter MS_010=100;
+  parameter MS_001=10;
+  parameter MS_500=500;
+  parameter US_016=2;
 `endif
 
-  //reg [3:0] state;
-  //parameter phase_0,;
+  parameter STATE_IDLE    = 00;
+  parameter STATE_ENTER_RESET    = 01;
+  parameter STATE_START_LOW   = 02;
+  parameter STATE_START_HIGH   = 03;
+  parameter STATE_DATA    = 04;
+  parameter STATE_END     = 05;
+  reg [3:0] state = STATE_IDLE;
+  
 
   always @(posedge clk)
   begin
     rdy <= 1'b0;
+
     if (rst) begin
     	cnt <= 0;
       current_data <= 1'b0;
+      swim_rst <= 1'b1;
     end else begin
-        if ( (en  ) && cnt == 0) begin
-            cnt <=43;
-            current_data <= data[44];
-        end
-        if (cnt == 0 && clk_tick) begin
-           current_data <= 1'b0;
-           rdy <= 1'b1;
-        end
-        if (cnt > 0 && clk_tick) begin
-            cnt <= cnt -  1'b1;
-            current_data <= data[cnt];
-        end
+        case(state)
+          STATE_IDLE: begin
+            if (en) begin              
+              swim_rst <= 1'b0;
+              current_data <= 1'b1;
+              cnt <= MS_010;//10 ms in reset
+              state <= STATE_ENTER_RESET;
+            end
+          end
+          STATE_ENTER_RESET: begin            
+              cnt <= cnt -  1'b1;
+              if (cnt ==0) begin
+                current_data <= 1'b0;
+                
+                cnt <= US_016;//16 us in start low
+                state <= STATE_START_LOW;
+                clk_en <= 1'b0;
+              end
+          end 
+          STATE_START_LOW: begin
+              cnt <= cnt -  1'b1;
+              if (cnt ==0) begin
+                current_data <= 1'b1;
+                cnt <= MS_001;//1 ms in start high
+                state <= STATE_START_HIGH;
+              end
+          end 
+          STATE_START_HIGH: begin
+             cnt <= cnt -  1'b1;
+             if (cnt ==0) begin
+                cnt <=27;//start sending the data
+                current_data <= data[27];
+                state <= STATE_DATA;
+            end
+          end      
+          STATE_DATA: begin
+            if (cnt > 0 && clk_tick) begin
+              cnt <= cnt -  1'b1;
+              current_data <= data[cnt-1];
+            end
+            if (cnt == 0 && clk_tick) begin
+              state <= STATE_END;
+              current_data <= 1'b1;                              
+              cnt <= MS_500; // 500ms
+            end
+          end        
+          STATE_END: begin
+            if (cnt > 0) begin
+              cnt <= cnt -  1'b1;
+            end
+            if (cnt == 0) begin
+              state <= STATE_IDLE;
+              rdy <= 1'b1;
+              swim_rst <= 1'b1;
+              clk_en =1'b0;
+            end
+          end     
+        endcase
     end
   end
 endmodule
@@ -67,7 +136,8 @@ module swim_rst_wrap(
   input en,
   inout swim_1,
   inout swim_2,
-  inout swim_3
+  inout swim_3,
+  output swim_rst
 );
 
   wire swim;
@@ -77,7 +147,8 @@ module swim_rst_wrap(
     .rst(rst),
     .en(en),
     .swim(swim),
-    .swim_en(swim_en)
+    .swim_en(swim_en),
+    .swim_rst(swim_rst)
   );
 `ifdef SYNTHESIS
 
@@ -110,9 +181,6 @@ module swim_rst_wrap(
 `endif
 endmodule
 
-
-
-
 module top (
         input  pin_clk,
 
@@ -123,11 +191,19 @@ module top (
         output pin_led,
         inout pin_1,
         inout pin_2,
-        inout pin_3
+        inout pin_3,
+        output pin_4,
+        output pin_5,
+        output pin_6
     );
 
     wire clk_48mhz;
     wire clk_locked;
+
+    wire swimg_rst;
+    assign pin_4 = swimg_rst;
+    assign pin_5 = swimg_rst;
+    assign pin_6 = swimg_rst;
 
     // Use an icepll generated pll
     pll pll48( .clock_in(pin_clk), .clock_out(clk_48mhz), .locked( clk_locked ) );
@@ -185,7 +261,8 @@ module top (
         .en(en),
         .swim_1(pin_1),
         .swim_2(pin_2),
-        .swim_3(pin_3)
+        .swim_3(pin_3),
+        .swim_rst(swimg_rst)
   );
   
   /* fifo to store X bytes, where X it a power of 2*/
